@@ -1,89 +1,7 @@
 import pickle
 
-# Класс, представляющий книгу
-class Book:
-    def __init__(self, title, author, year, genre):
-        self.title = title
-        self.author = author
-        self.year = year
-        self.genre = genre
+# Классы Book, Reader и Library остаются без изменений
 
-    def __str__(self):
-        return f"'{self.title}' by {self.author} ({self.year}) - {self.genre}"
-
-    def __eq__(self, other):
-        return self.title == other.title and self.author == other.author
-
-# Класс, представляющий читателя
-class Reader:
-    def __init__(self, name, reader_id):
-        self.name = name
-        self.reader_id = reader_id
-        self.borrowed_books = []
-
-    def borrow_book(self, book):
-        self.borrowed_books.append(book)
-
-    def return_book(self, book):
-        if book in self.borrowed_books:
-            self.borrowed_books.remove(book)
-        else:
-            raise ValueError(f"Book '{book.title}' not borrowed by {self.name}")
-
-    def __str__(self):
-        return f"{self.name} (ID: {self.reader_id}), Borrowed books: {[str(book) for book in self.borrowed_books]}"
-
-# Класс, представляющий библиотеку
-class Library:
-    def __init__(self, name):
-        self.name = name
-        self.books = []
-        self.readers = []
-
-    def add_book(self, book):
-        self.books.append(book)
-
-    def remove_book(self, book):
-        if book in self.books:
-            self.books.remove(book)
-        else:
-            raise ValueError(f"Book '{book.title}' not found in the library")
-
-    def register_reader(self, reader):
-        self.readers.append(reader)
-
-    def lend_book(self, reader, book):
-        if book in self.books:
-            reader.borrow_book(book)
-            self.books.remove(book)
-        else:
-            raise ValueError(f"Book '{book.title}' is not available")
-
-    def return_book(self, reader, book):
-        reader.return_book(book)
-        self.books.append(book)
-
-    def find_book(self, title=None, author=None):
-        found_books = [
-            book for book in self.books 
-            if (title is None or book.title.lower() == title.lower()) and 
-               (author is None or book.author.lower() == author.lower())
-        ]
-        return found_books
-
-    def get_reader_books(self, reader):
-        return reader.borrowed_books
-
-    def save_state(self, filename):
-        with open(filename, 'wb') as f:
-            pickle.dump(self, f)
-
-    @staticmethod
-    def load_state(filename):
-        with open(filename, 'rb') as f:
-            return pickle.load(f)
-
-# Пример использования библиотеки
 if __name__ == "__main__":
     # Создаем библиотеку
     library = Library("City Library")
@@ -95,39 +13,59 @@ if __name__ == "__main__":
     library.add_book(book2)
 
     # Регистрируем читателя
-    reader1 = Reader("Alice", 1)
+    reader_name = input("Введите имя читателя: ")
+    reader_id = int(input("Введите ID читателя: "))
+    reader1 = Reader(reader_name, reader_id)
     library.register_reader(reader1)
 
-    # Выдаем книгу
-    print(f"Lending '{book1.title}' to {reader1.name}")
-    library.lend_book(reader1, book1)
+    while True:
+        print("\n1. Выдать книгу")
+        print("2. Вернуть книгу")
+        print("3. Найти книгу")
+        print("4. Выход")
 
-    # Проверяем взятые книги читателя
-    print("Books borrowed by reader1:", library.get_reader_books(reader1))
+        choice = input("Выберите действие: ")
 
-    # Возвращаем книгу
-    print(f"Returning '{book1.title}' from {reader1.name}")
-    library.return_book(reader1, book1)
+        if choice == "1":
+            title = input("Введите название книги для выдачи: ")
+            found_books = library.find_book(title=title)
+            if found_books:
+                print(f"Книги, найденные по запросу '{title}':")
+                for book in found_books:
+                    print(book)
+                book_to_lend = found_books[0]
+                library.lend_book(reader1, book_to_lend)
+                print(f"Книга '{book_to_lend.title}' выдана читателю {reader1.name}")
+            else:
+                print("Книга не найдена.")
+        
+        elif choice == "2":
+            title = input("Введите название книги для возврата: ")
+            found_books = library.get_reader_books(reader1)
+            book_to_return = None
+            for book in found_books:
+                if book.title.lower() == title.lower():
+                    book_to_return = book
+                    break
+            if book_to_return:
+                library.return_book(reader1, book_to_return)
+                print(f"Книга '{book_to_return.title}' возвращена читателем {reader1.name}")
+            else:
+                print(f"У читателя {reader1.name} нет такой книги.")
+        
+        elif choice == "3":
+            title = input("Введите название книги для поиска: ")
+            found_books = library.find_book(title=title)
+            if found_books:
+                print(f"Найденные книги по запросу '{title}':")
+                for book in found_books:
+                    print(book)
+            else:
+                print("Книги не найдены.")
 
-    # Поиск книги по автору
-    found_books = library.find_book(author="George Orwell")
-    print("Found books by George Orwell:")
-    for book in found_books:
-        print(book)
-
-    # Сохранение состояния
-    print("Saving library state to 'library_state.pkl'")
-    library.save_state("library_state.pkl")
-
-    # Загрузка состояния
-    print("Loading library state from 'library_state.pkl'")
-    library = Library.load_state("library_state.pkl")
-
-    # Проверка загрузки состояния
-    print("Books in the library after loading:")
-    for book in library.books:
-        print(book)
-
-    print("Registered readers:")
-    for reader in library.readers:
-        print(reader)
+        elif choice == "4":
+            print("Выход из программы.")
+            break
+        
+        else:
+            print("Неверный выбор. Попробуйте снова.")
